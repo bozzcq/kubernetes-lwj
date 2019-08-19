@@ -1,10 +1,9 @@
 ---
-#elasticsearch 服务暴露的9200端口
 apiVersion: v1
 kind: Service
 metadata:
   name: elasticsearch-api
-  namespace: elk
+  namespace: kube-system
   labels:
     name: elasticsearch
 spec:
@@ -19,7 +18,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: elasticsearch-discovery
-  namespace: elk
+  namespace: kube-system
   labels:
     name: elasticsearch
 spec:
@@ -34,7 +33,7 @@ apiVersion: apps/v1beta1
 kind: StatefulSet
 metadata:
   name: elasticsearch
-  namespace: elk
+  namespace: kube-system
   labels:
     kubernetes.io/cluster-service: "true"
 spec:
@@ -51,19 +50,8 @@ spec:
       tolerations:
       - effect: NoSchedule
         key: node-role.kubernetes.io/master
-      #  此处为创建管理员的用户，需要更改
-      serviceAccountName: es-admin
-      # Elasticsearch 持久化权限更改
+      serviceAccountName: dashboard-admin
       initContainers:
-      - name: fix-the-volume-permission
-        image: busybox:latest
-        command: ['sh', '-c', 'chown -R 1000:1000 /usr/share/elasticsearch/data']
-        securityContext:
-          privileged: true
-        volumeMounts:
-          - name: elasticsearch-data-volume
-            mountPath: /usr/share/elasticsearch/data
-      # Elasticsearch 需要设置 vm.max_map_count = 262144.
       - name: init-sysctl
         image: busybox:latest
         command:
@@ -118,20 +106,18 @@ spec:
             value: "1"
           - name: "transport.tcp.connect_timeout"
             value: "60s"
-          #此处和服务名相关，需要随服务名更改（建议不要更改）
           - name: "cluster.initial_master_nodes"
             value: "elasticsearch-0,elasticsearch-1,elasticsearch-2"
           - name: "ES_JAVA_OPTS"
-            value: "-Xmx1g -Xms1g"
+            value: "-Xms2g -Xmx2g"
         livenessProbe:
           tcpSocket:
             port: transport
           initialDelaySeconds: 20
           periodSeconds: 10
         volumeMounts:
-        # 此处为挂载的data目录--不修改内部存储目录数据默认地址为/usr/share/elasticsearch/data
         - name: elasticsearch-data-volume
-          mountPath: /usr/share/elasticsearch/data
+          mountPath: /data
       terminationGracePeriodSeconds: 30
   volumeClaimTemplates:
     - metadata:
@@ -144,14 +130,13 @@ spec:
             storage: 20Gi
 
 ---
-# 供给外界做健康检查或者api请求
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
  labels:
    app: elasticsearch
  name: elasticsearch-ingress
- namespace: elk
+ namespace: kube-system
 spec:
  rules:
    - host: elasticsearch.btclass.com

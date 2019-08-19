@@ -3,7 +3,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: kibana
-  namespace: kube-system
+  namespace: elk
   labels:
     component: kibana
 spec:
@@ -14,15 +14,15 @@ spec:
     port: 80
     targetPort: http
 ---
-#ingress
+
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
   name: kibana
-  namespace: kube-system
+  namespace: elk
 spec:
   rules:
-  - host: kibana.mooc.com
+  - host: kibana.btclass.com
     http:
       paths:
       - path: /
@@ -34,7 +34,7 @@ apiVersion: apps/v1beta1
 kind: Deployment
 metadata:
   name: kibana
-  namespace: kube-system
+  namespace: elk
   labels:
     component: kibana
 spec:
@@ -49,11 +49,12 @@ spec:
     spec:
       containers:
       - name: kibana
-        image: registry.cn-hangzhou.aliyuncs.com/imooc/kibana:5.5.1
+        image: kibana:7.2.0
         env:
         - name: CLUSTER_NAME
           value: docker-cluster
-        - name: ELASTICSEARCH_URL
+        # 对应es服务，需要同步更改（不建议更改）
+        - name: ELASTICSEARCH_HOSTS
           value: http://elasticsearch-api:9200/
         resources:
           limits:
