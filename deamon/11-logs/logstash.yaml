@@ -11,32 +11,54 @@ data:
   # elasticsearch hosts 需要随着es服务更改
   logstash.conf: |
     input {
-      jdbc {
-        jdbc_connection_string => "jdbc:mysql://120.78.249.137:3306/db_pte"
-        jdbc_user => "developer"
-        jdbc_password => "developer123456"
-        jdbc_driver_library => "/etc/java/mysql-connector-java-8.0.17.jar"
-        jdbc_driver_class => "com.mysql.jdbc.Driver"
-        statement => "select id, id as idStr, type, code, title, stem, tags, createdAt, updatedAt from question where status = 1 and deletedAt is null and stem != '' and updatedAt > :sql_last_value"
-        use_column_value => true
-        tracking_column => "updatedAt"
-        record_last_run => true
-        last_run_metadata_path => "/.question_last_run"
-        lowercase_column_names => false
-        schedule => "* * * * *"
-        }
-      }
-    output {
-      elasticsearch {
-        hosts => ["http://elasticsearch-api:9200"]
-        index => "question"
-        document_id => "%{id}"
-        template_overwrite => true
-      }
-      stdout {
-        codec => json_lines
-      }
-    }
+			jdbc {
+			 	# jdbc驱动包位置
+				jdbc_driver_library => "/etc/java/mysql-connector-java-8.0.17.jar"
+				jdbc_driver_class => "com.mysql.jdbc.Driver"
+				# myqsl数据库的连接信息
+				jdbc_connection_string => "jdbc:mysql://120.78.249.137:3306/db_pte"
+				# mysql用户
+				jdbc_user => "developer"
+				# mysql密码
+				jdbc_password => "developer123456"
+				# 定时任务， 多久执行一次查询, 默认一分钟
+				schedule => "* * * * *"
+				lowercase_column_names => false
+				statement => "select id, id as idStr, type, code, title, stem, isHigh, isNew, isMachine, status, createdAt, updatedAt, deletedAt from question where stem != '' and updatedAt > :sql_last_value ORDER BY updatedAt"
+			  record_last_run => true
+				use_column_value => true
+    		tracking_column => "updatedAt"
+				last_run_metadata_path => "/.pte_question_jdbc_last_run"
+			}
+	  }
+
+	  filter {
+			if [code] in ["R-FIB", "R&W-FIB", "L-FIB"] {
+				mutate {
+        	gsub => ["stem", "\[(.+?)\]", "[]"]
+    		}
+			} else if [code] == "HIW" {
+				mutate {
+        	gsub => ["stem", "\[(.+?)\]", "\1"]
+    		}
+			}
+	  }
+
+	  output {
+			stdout { 
+					codec => rubydebug 
+			} 
+				# 将数据输出到ElasticSearch中
+			elasticsearch {
+			  	# es ip加端口
+					hosts => ["http://elasticsearch-api:9200"]
+					# es文档索引
+					index => "question"
+					# es文档数据的id，%{id}代表的是用数据库里面记录的id作为文档的id
+					document_id => "%{id}"
+					document_type => "_doc"
+	  	}
+	  }
 ---
 kind: Deployment
 apiVersion: apps/v1beta2
@@ -96,3 +118,16 @@ spec:
     - port: 9600
       targetPort: 9600
 
+# ---
+# kind: Service
+# apiVersion: v1
+# metadata:
+#   labels:
+#     elastic-app: logstash
+#   name: logstash-api
+#   namespace: elk
+# spec:
+#   ports:
+#     - name: transport
+#       port: 5044
+#       protocol: TCP

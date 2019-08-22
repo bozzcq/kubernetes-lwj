@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: exam
+spec:
+  tolerations:
+  - key: "node-role.kubernetes.io/master"
+    effect: "NoSchedule"
+  containers:
+  - name: exam
+    image: "justliu/exam:1.0.2"
+    ports:
+    - containerPort: 7001
+      name: web
+    env:
+    - name: EGG_SERVER_ENV
+      value: "test"
+    - name: aliyun_logs_bts
+      value: "stdout"
+    - name: aliyun_logs_bts_tags
+      value: "name=exam"
