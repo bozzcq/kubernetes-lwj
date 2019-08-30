@@ -12,9 +12,11 @@ spec:
       name: exam
       labels:
         name: exam
+      annotations: 
+        ci-last-updated: '1111ss'
     spec:
-      nodeSelector:
-        app: node2
+      # nodeSelector:
+      #   app: node2
       containers:
       - name: exam
         image: "justliu/exam:1.0.2"
@@ -29,10 +31,17 @@ spec:
             port: 7001
           initialDelaySeconds: 30
           timeoutSeconds: 30
+        # 就绪探针
+        readinessProbe:
+          httpGet:
+            path: /alive
+            port: 7001
+          initialDelaySeconds: 30
+          timeoutSeconds: 1
         env:
         - name: EGG_SERVER_ENV
           value: "test"
-        - name: aliyun_logs_bts
+        - name: aliyun_logs_test
           value: "stdout"
-        - name: aliyun_logs_bts_tags
+        - name: aliyun_logs_test_tags
           value: "name=exam"

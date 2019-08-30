@@ -21,8 +21,6 @@ data:
       {{if .Stdout}}
       docker-json: true
       {{end}}
-      json.keys_under_root: true
-      json.add_error_key: true
       {{if eq .Format "json"}}
       json.keys_under_root: true
       {{end}}
@@ -33,6 +31,7 @@ data:
           {{range $key, $value := $.container}}
           {{ $key }}: {{ $value }}
           {{end}}
+          state: test
       tail_files: false
       close_inactive: 2h
       close_eof: false
@@ -50,12 +49,19 @@ metadata:
     k8s-app: log-pilot
     kubernetes.io/cluster-service: "true"
 spec:
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
   template:
     metadata:
       labels:
         k8s-app: log-es
         kubernetes.io/cluster-service: "true"
         version: v1.22
+      annotations: 
+        ci-last-updated: '1111ss'
     spec:
       tolerations:
       - key: node-role.kubernetes.io/master
@@ -77,13 +83,9 @@ spec:
           - name: "FILEBEAT_OUTPUT"
             value: "elasticsearch"
           - name: "ELASTICSEARCH_HOST"
-            value: "elasticsearch-api"
+            value: "es-api.bt-tp.group"
           - name: "ELASTICSEARCH_PORT"
-            value: "9200"
-          - name: "ELASTICSEARCH_USER"
-            value: "elastic"
-          - name: "ELASTICSEARCH_PASSWORD"
-            value: "changeme"        
+            value: "80"     
         volumeMounts:
         - mountPath: /pilot/filebeat.tpl
           subPath: filebeat.tpl

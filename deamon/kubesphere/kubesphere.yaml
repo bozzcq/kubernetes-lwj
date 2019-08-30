@@ -2,16 +2,16 @@
 apiVersion: v1
 data:
   ks-config.yaml: |
-    kube_apiserver_host: 39.100.119.6:6443
+    kube_apiserver_host: 192.168.191:6443
     etcd_tls_enable: True
-    etcd_endpoint_ips: 39.100.119.6
+    etcd_endpoint_ips: 192.168.2.191
     disableMultiLogin: True
     elk_prefix: logstash
     metrics_server_enable: False
     sonarqube_enable: False
     istio_enable: False
     persistence:
-      enable: True
+      enable: true
       storageClass: "rook-ceph-block"
 kind: ConfigMap
 metadata:
